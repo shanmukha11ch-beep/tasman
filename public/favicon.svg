@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="takGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366f1" />
+      <stop offset="50%" stop-color="#8b5cf6" />
+      <stop offset="100%" stop-color="#d946ef" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background rounded box -->
+  <rect width="512" height="512" rx="128" fill="#0f172a" />
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="url(#takGrad)" stroke-width="8" opacity="0.4" />
+  
+  <!-- Bold T combined with Checkmark -->
+  <g transform="translate(64, 64)">
+    <!-- Top bar of T -->
+    <path d="M 40 50 Q 192 40 344 50 C 364 51 364 80 344 80 L 40 80 C 20 80 20 50 40 50 Z" fill="url(#takGrad)" />
+    
+    <!-- Vertical stem of T tapering down -->
+    <path d="M 160 80 L 224 80 L 224 240 C 224 270 190 290 160 270 L 160 80 Z" fill="url(#takGrad)" opacity="0.85" />
+    
+    <!-- Glowing checkmark intersecting the T -->
+    <path d="M 120 220 L 190 290 L 340 140" fill="none" stroke="url(#takGrad)" stroke-width="42" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" />
+  </g>
+</svg>
