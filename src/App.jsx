@@ -15,6 +15,7 @@ import { TaskModal } from './components/Modals/TaskModal';
 import { ProjectModal } from './components/Modals/ProjectModal';
 import { SavingsModal } from './components/Modals/SavingsModal';
 import { SleepModal } from './components/Modals/SleepModal';
+import { HabitModal } from './components/Modals/HabitModal';
 
 import { storage } from './utils/storage';
 
@@ -30,6 +31,8 @@ export default function App() {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [isSavingsModalOpen, setIsSavingsModalOpen] = useState(false);
   const [isSleepModalOpen, setIsSleepModalOpen] = useState(false);
+  const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
+  const [editingHabit, setEditingHabit] = useState(null);
 
   // Sync state with storage engine
   useEffect(() => {
@@ -57,6 +60,16 @@ export default function App() {
     setIsTaskModalOpen(true);
   };
 
+  const handleOpenNewHabit = () => {
+    setEditingHabit(null);
+    setIsHabitModalOpen(true);
+  };
+
+  const handleEditHabit = (habit) => {
+    setEditingHabit(habit);
+    setIsHabitModalOpen(true);
+  };
+
   return (
     <div className="app-container">
       {/* Splash Screen on initial boot */}
@@ -76,6 +89,8 @@ export default function App() {
             state={state}
             onNavigate={(tab) => setActiveTab(tab)}
             onOpenTaskModal={handleOpenNewTask}
+            onOpenHabitModal={handleOpenNewHabit}
+            onEditHabit={handleEditHabit}
             onOpenSavingsModal={() => setIsSavingsModalOpen(true)}
             onOpenSleepModal={() => setIsSleepModalOpen(true)}
           />
@@ -102,7 +117,11 @@ export default function App() {
         )}
 
         {activeTab === 'stats' && (
-          <StatsView state={state} />
+          <StatsView
+            state={state}
+            onOpenHabitModal={handleOpenNewHabit}
+            onEditHabit={handleEditHabit}
+          />
         )}
 
         {activeTab === 'profile' && (
@@ -147,6 +166,12 @@ export default function App() {
       <SleepModal
         isOpen={isSleepModalOpen}
         onClose={() => setIsSleepModalOpen(false)}
+      />
+
+      <HabitModal
+        isOpen={isHabitModalOpen}
+        onClose={() => setIsHabitModalOpen(false)}
+        initialHabit={editingHabit}
       />
 
       <style>{`

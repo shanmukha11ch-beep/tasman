@@ -78,8 +78,9 @@ class StorageEngine {
 
   // --- TASKS ---
   addTask(taskData) {
+    const taskId = 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
     const newTask = {
-      id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      id: taskId,
       title: taskData.title || 'Untitled Task',
       description: taskData.description || '',
       category: taskData.category || 'General',
@@ -93,6 +94,8 @@ class StorageEngine {
       reminder: taskData.reminder || false,
       repeat: taskData.repeat || { frequency: 'never', weekdays: [], customDays: 1 },
       projectId: taskData.projectId || null,
+      recurringSeriesId: taskData.recurringSeriesId || (taskData.repeat && taskData.repeat.frequency !== 'never' ? taskId : null),
+      nextOccurrenceCreated: false,
       createdAt: new Date().toISOString(),
       completedAt: null
     };
@@ -124,7 +127,8 @@ class StorageEngine {
         title: `${original.title} (Copy)`,
         createdAt: new Date().toISOString(),
         completedAt: null,
-        status: 'pending'
+        status: 'pending',
+        nextOccurrenceCreated: false
       };
       this.state.tasks.unshift(clone);
       this.save();
@@ -143,7 +147,7 @@ class StorageEngine {
       task.status = 'completed';
       task.completedAt = new Date().toISOString();
 
-      // Recurring Task Handling: Auto generate next occurrence if repeat is active!
+      // Recurring Task Handling: Auto generate next occurrence ONCE if repeat is active!
       if (task.repeat && task.repeat.frequency !== 'never') {
         this.generateNextOccurrence(task);
       }
@@ -162,15 +166,40 @@ class StorageEngine {
   }
 
   generateNextOccurrence(task) {
+    // 1. If this specific occurrence has already generated the next task, DO NOT generate another
+    if (task.nextOccurrenceCreated) return;
+
     const currentDue = new Date(task.dueDate || new Date());
     const nextDate = this.calculateNextDate(currentDue, task.repeat);
+    const nextDateStr = nextDate.toISOString().split('T')[0];
+    const seriesId = task.recurringSeriesId || task.id;
 
+    // 2. Check if a future occurrence in this series or from this parent task already exists
+    const existing = this.state.tasks.find(
+      (t) =>
+        (t.recurringSeriesId === seriesId || t.parentTaskId === task.id) &&
+        t.dueDate === nextDateStr &&
+        t.status !== 'archived'
+    );
+
+    // Mark current task as having generated its next occurrence
+    task.nextOccurrenceCreated = true;
+    if (!task.recurringSeriesId) {
+      task.recurringSeriesId = seriesId;
+    }
+
+    if (existing) return;
+
+    // 3. Create the next occurrence
     const nextTask = {
       ...task,
       id: 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      recurringSeriesId: seriesId,
+      parentTaskId: task.id,
       status: 'pending',
       completedAt: null,
-      dueDate: nextDate.toISOString().split('T')[0],
+      nextOccurrenceCreated: false,
+      dueDate: nextDateStr,
       createdAt: new Date().toISOString()
     };
     this.state.tasks.unshift(nextTask);
@@ -178,14 +207,13 @@ class StorageEngine {
 
   calculateNextDate(currentDate, repeat) {
     const next = new Date(currentDate);
-    const { frequency, weekdays = [], customDays = 1 } = repeat;
+    const { frequency, weekdays = [], customDays = 1 } = repeat || {};
 
     if (frequency === 'daily') {
       next.setDate(next.getDate() + 1);
     } else if (frequency === 'weekly') {
-      if (weekdays.length > 0) {
-        // Find next selected day of week
-        let currentDay = next.getDay(); // 0 = Sun, 1 = Mon ...
+      if (weekdays && weekdays.length > 0) {
+        let currentDay = next.getDay();
         let daysToAdd = 1;
         for (let i = 1; i <= 7; i++) {
           let testDay = (currentDay + i) % 7;
@@ -199,11 +227,22 @@ class StorageEngine {
         next.setDate(next.getDate() + 7);
       }
     } else if (frequency === 'monthly') {
+      const origDay = next.getDate();
       next.setMonth(next.getMonth() + 1);
+      if (next.getDate() !== origDay) {
+        next.setDate(0); // Clamps to last day of previous month
+      }
     } else if (frequency === 'yearly') {
+      const origMonth = next.getMonth();
       next.setFullYear(next.getFullYear() + 1);
+      if (next.getMonth() !== origMonth) {
+        next.setDate(0);
+      }
     } else if (frequency === 'custom') {
-      next.setDate(next.getDate() + (parseInt(customDays, 10) || 1));
+      const days = parseInt(customDays, 10) || 1;
+      next.setDate(next.getDate() + Math.max(1, days));
+    } else {
+      next.setDate(next.getDate() + 1);
     }
     return next;
   }
@@ -243,10 +282,16 @@ class StorageEngine {
   // --- HABITS ---
   addHabit(habitData) {
     const newHabit = {
-      id: 'habit_' + Date.now(),
-      title: habitData.title,
+      id: 'habit_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+      title: habitData.title || 'Untitled Habit',
       category: habitData.category || 'Health',
       icon: habitData.icon || 'Flame',
+      color: habitData.color || '#f59e0b',
+      repeat: habitData.repeat || { frequency: 'daily', weekdays: [], customDays: 1 },
+      reminder: habitData.reminder || { enabled: false, time: '08:00' },
+      goal: habitData.goal || { target: 1, unit: 'times' },
+      startDate: habitData.startDate || new Date().toISOString().split('T')[0],
+      status: habitData.status || 'active', // 'active' | 'paused' | 'archived'
       streak: 0,
       longestStreak: 0,
       completions: {}, // { 'YYYY-MM-DD': true }
@@ -261,6 +306,7 @@ class StorageEngine {
     const idx = this.state.habits.findIndex((h) => h.id === id);
     if (idx !== -1) {
       this.state.habits[idx] = { ...this.state.habits[idx], ...updates };
+      this.calculateHabitStreak(this.state.habits[idx]);
       this.save();
     }
   }
@@ -270,44 +316,82 @@ class StorageEngine {
     this.save();
   }
 
+  pauseHabit(id) {
+    this.updateHabit(id, { status: 'paused' });
+  }
+
+  resumeHabit(id) {
+    this.updateHabit(id, { status: 'active' });
+  }
+
+  archiveHabit(id) {
+    this.updateHabit(id, { status: 'archived' });
+  }
+
   toggleHabitCompletion(id, dateStr = new Date().toISOString().split('T')[0]) {
     const habit = this.state.habits.find((h) => h.id === id);
     if (!habit) return;
 
     if (!habit.completions) habit.completions = {};
-    
+
     if (habit.completions[dateStr]) {
       delete habit.completions[dateStr];
     } else {
       habit.completions[dateStr] = true;
     }
 
-    // Recalculate streak
     this.calculateHabitStreak(habit);
     this.save();
   }
 
   calculateHabitStreak(habit) {
-    const today = new Date();
-    let streak = 0;
-    let curr = new Date(today);
+    if (!habit || !habit.completions) return;
 
-    // Check today or yesterday as start
-    let dateKey = curr.toISOString().split('T')[0];
-    if (!habit.completions[dateKey]) {
-      curr.setDate(curr.getDate() - 1);
-      dateKey = curr.toISOString().split('T')[0];
+    const todayStr = new Date().toISOString().split('T')[0];
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+    // Determine start check point
+    let currentCheck = new Date();
+    let currentStr = todayStr;
+    if (!habit.completions[todayStr]) {
+      currentCheck = yesterday;
+      currentStr = yesterdayStr;
     }
 
-    while (habit.completions[dateKey]) {
-      streak++;
-      curr.setDate(curr.getDate() - 1);
-      dateKey = curr.toISOString().split('T')[0];
+    if (!habit.completions[currentStr]) {
+      habit.streak = 0;
+    } else {
+      let streak = 0;
+      let checkDate = new Date(currentCheck);
+
+      while (true) {
+        const dateKey = checkDate.toISOString().split('T')[0];
+        if (habit.completions[dateKey]) {
+          streak++;
+          const freq = habit.repeat?.frequency || 'daily';
+          if (freq === 'daily') {
+            checkDate.setDate(checkDate.getDate() - 1);
+          } else if (freq === 'weekly') {
+            checkDate.setDate(checkDate.getDate() - 7);
+          } else if (freq === 'monthly') {
+            checkDate.setMonth(checkDate.getMonth() - 1);
+          } else if (freq === 'custom') {
+            const step = parseInt(habit.repeat?.customDays, 10) || 1;
+            checkDate.setDate(checkDate.getDate() - step);
+          } else {
+            checkDate.setDate(checkDate.getDate() - 1);
+          }
+        } else {
+          break;
+        }
+      }
+      habit.streak = streak;
     }
 
-    habit.streak = streak;
-    if (streak > (habit.longestStreak || 0)) {
-      habit.longestStreak = streak;
+    if (habit.streak > (habit.longestStreak || 0)) {
+      habit.longestStreak = habit.streak;
     }
   }
 

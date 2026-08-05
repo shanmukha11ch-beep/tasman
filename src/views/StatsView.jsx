@@ -1,18 +1,30 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   BarChart3,
   CheckCircle2,
+  Circle,
   Flame,
   Timer,
   PiggyBank,
   Moon,
   Zap,
   Award,
-  TrendingUp
+  TrendingUp,
+  Plus,
+  Edit2,
+  Pause,
+  Play,
+  Archive,
+  Trash2,
+  Calendar,
+  CheckSquare
 } from 'lucide-react';
 import { BarChartComponent, TrendChartComponent, ProgressRing } from '../components/Charts/SvgCharts';
+import { EmptyState } from '../components/EmptyState';
+import { storage } from '../utils/storage';
 
-export const StatsView = ({ state }) => {
+export const StatsView = ({ state, onOpenHabitModal, onEditHabit }) => {
+  const [habitFilter, setHabitFilter] = useState('active'); // 'active' | 'paused' | 'archived' | 'all'
   const todayStr = new Date().toISOString().split('T')[0];
 
   // 1. Task Metrics
@@ -21,7 +33,6 @@ export const StatsView = ({ state }) => {
   const overallCompletionRate = totalTasks > 0 ? (completedTasks / totalTasks) * 100 : 0;
 
   const todayTasks = state.tasks.filter((t) => t.dueDate === todayStr);
-  const todayCompleted = todayTasks.filter((t) => t.status === 'completed').length;
 
   // Weekly bar data calculation
   const getWeeklyTaskData = () => {
@@ -42,10 +53,17 @@ export const StatsView = ({ state }) => {
     return result;
   };
 
-  // Habit metrics
+  // Habit metrics & Filtering
   const habits = state.habits || [];
   const maxStreak = habits.length > 0 ? Math.max(...habits.map((h) => h.streak || 0), 0) : 0;
   const longestStreakOverall = habits.length > 0 ? Math.max(...habits.map((h) => h.longestStreak || 0), 0) : 0;
+
+  const filteredHabits = habits.filter((h) => {
+    if (habitFilter === 'active') return h.status !== 'paused' && h.status !== 'archived';
+    if (habitFilter === 'paused') return h.status === 'paused';
+    if (habitFilter === 'archived') return h.status === 'archived';
+    return true; // 'all'
+  });
 
   // Focus time metrics
   const focusLogs = state.focusLogs || [];
@@ -99,6 +117,159 @@ export const StatsView = ({ state }) => {
           <span className="stat-big-val">{avgSleep}h</span>
           <span className="stat-big-lbl">Avg Sleep</span>
         </div>
+      </div>
+
+      {/* Habit Tracker Section */}
+      <div className="glass-card habit-tracker-card">
+        <div className="chart-header">
+          <div className="chart-title-group">
+            <Flame size={20} className="text-amber" />
+            <h3 className="chart-title font-heading">Habit Tracker</h3>
+          </div>
+          <button className="btn-primary mini-btn" onClick={onOpenHabitModal}>
+            <Plus size={16} /> New Habit
+          </button>
+        </div>
+
+        {/* Filter Pills */}
+        <div className="habit-filter-pills">
+          <button
+            className={`filter-pill ${habitFilter === 'active' ? 'active' : ''}`}
+            onClick={() => setHabitFilter('active')}
+          >
+            Active ({habits.filter((h) => h.status !== 'paused' && h.status !== 'archived').length})
+          </button>
+          <button
+            className={`filter-pill ${habitFilter === 'paused' ? 'active' : ''}`}
+            onClick={() => setHabitFilter('paused')}
+          >
+            Paused ({habits.filter((h) => h.status === 'paused').length})
+          </button>
+          <button
+            className={`filter-pill ${habitFilter === 'archived' ? 'active' : ''}`}
+            onClick={() => setHabitFilter('archived')}
+          >
+            Archived ({habits.filter((h) => h.status === 'archived').length})
+          </button>
+          <button
+            className={`filter-pill ${habitFilter === 'all' ? 'active' : ''}`}
+            onClick={() => setHabitFilter('all')}
+          >
+            All ({habits.length})
+          </button>
+        </div>
+
+        {/* Habits List */}
+        {filteredHabits.length === 0 ? (
+          <EmptyState
+            icon={Flame}
+            title="No habits found"
+            subtitle={habits.length === 0 ? "Start tracking habits to build unstoppable streaks." : "No habits match this filter."}
+            actionLabel="Add Habit"
+            onAction={onOpenHabitModal}
+          />
+        ) : (
+          <div className="habits-management-list">
+            {filteredHabits.map((habit) => {
+              const isCompletedToday = habit.completions && habit.completions[todayStr];
+              const isPaused = habit.status === 'paused';
+              const isArchived = habit.status === 'archived';
+
+              return (
+                <div key={habit.id} className={`glass-card habit-manage-item ${isCompletedToday ? 'completed' : ''}`}>
+                  <button
+                    className="check-btn"
+                    onClick={() => storage.toggleHabitCompletion(habit.id, todayStr)}
+                    disabled={isArchived}
+                  >
+                    {isCompletedToday ? (
+                      <CheckCircle2 size={22} className="text-amber" />
+                    ) : (
+                      <Circle size={22} className="text-muted" />
+                    )}
+                  </button>
+
+                  <div className="habit-manage-info">
+                    <div className="habit-title-row">
+                      <span className="habit-title-txt" style={habit.color ? { color: habit.color } : {}}>
+                        {habit.title}
+                      </span>
+                      {isPaused && <span className="status-chip paused">Paused</span>}
+                      {isArchived && <span className="status-chip archived">Archived</span>}
+                    </div>
+
+                    <div className="habit-meta-row">
+                      <span className="habit-meta-chip">{habit.category || 'Health'}</span>
+                      <span className="habit-meta-chip">
+                        <Flame size={12} className="text-amber" /> {habit.streak || 0}d streak (Best: {habit.longestStreak || 0}d)
+                      </span>
+                      {habit.repeat?.frequency && (
+                        <span className="habit-meta-chip">{habit.repeat.frequency}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="habit-item-actions">
+                    <button
+                      className="btn-icon mini-icon-btn"
+                      onClick={() => onEditHabit(habit)}
+                      title="Edit Habit"
+                    >
+                      <Edit2 size={15} />
+                    </button>
+
+                    {isPaused ? (
+                      <button
+                        className="btn-icon mini-icon-btn text-emerald"
+                        onClick={() => storage.resumeHabit(habit.id)}
+                        title="Resume Habit"
+                      >
+                        <Play size={15} />
+                      </button>
+                    ) : (
+                      !isArchived && (
+                        <button
+                          className="btn-icon mini-icon-btn text-amber"
+                          onClick={() => storage.pauseHabit(habit.id)}
+                          title="Pause Habit"
+                        >
+                          <Pause size={15} />
+                        </button>
+                      )
+                    )}
+
+                    {!isArchived ? (
+                      <button
+                        className="btn-icon mini-icon-btn text-muted"
+                        onClick={() => storage.archiveHabit(habit.id)}
+                        title="Archive Habit"
+                      >
+                        <Archive size={15} />
+                      </button>
+                    ) : (
+                      <button
+                        className="btn-icon mini-icon-btn text-emerald"
+                        onClick={() => storage.resumeHabit(habit.id)}
+                        title="Restore Habit"
+                      >
+                        <Play size={15} />
+                      </button>
+                    )}
+
+                    <button
+                      className="btn-icon mini-icon-btn text-rose"
+                      onClick={() => storage.deleteHabit(habit.id)}
+                      title="Delete Habit"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Weekly Task Completion Chart */}
@@ -181,6 +352,57 @@ export const StatsView = ({ state }) => {
         }
         .stat-big-val { font-size: 1.5rem; font-weight: 800; color: var(--text-main); line-height: 1.1; }
         .stat-big-lbl { font-size: 0.725rem; color: var(--text-subtle); font-weight: 600; text-transform: uppercase; margin-top: 0.2rem; }
+        
+        .habit-tracker-card { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; }
+        .mini-btn { padding: 0.4rem 0.85rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.3rem; }
+        .habit-filter-pills { display: flex; gap: 0.4rem; overflow-x: auto; }
+        .filter-pill {
+          padding: 0.3rem 0.75rem;
+          border-radius: var(--radius-full);
+          font-size: 0.75rem;
+          font-weight: 600;
+          color: var(--text-muted);
+          background: var(--bg-surface-elevated);
+          border: 1px solid var(--border-subtle);
+        }
+        .filter-pill.active {
+          background: var(--grad-primary);
+          color: #fff;
+          border-color: transparent;
+        }
+        .habits-management-list { display: flex; flex-direction: column; gap: 0.65rem; }
+        .habit-manage-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.85rem;
+        }
+        .habit-manage-item.completed { opacity: 0.75; }
+        .habit-manage-info { flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+        .habit-title-row { display: flex; align-items: center; gap: 0.5rem; }
+        .habit-title-txt { font-size: 0.925rem; font-weight: 700; }
+        .status-chip {
+          font-size: 0.65rem;
+          padding: 0.1rem 0.45rem;
+          border-radius: var(--radius-full);
+          font-weight: 600;
+          text-transform: uppercase;
+        }
+        .status-chip.paused { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
+        .status-chip.archived { background: rgba(255, 255, 255, 0.1); color: var(--text-subtle); }
+        .habit-meta-row { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .habit-meta-chip {
+          font-size: 0.7rem;
+          color: var(--text-subtle);
+          background: var(--bg-surface-elevated);
+          padding: 0.1rem 0.45rem;
+          border-radius: var(--radius-sm);
+          display: inline-flex;
+          align-items: center;
+          gap: 0.25rem;
+        }
+        .habit-item-actions { display: flex; gap: 0.25rem; }
+
         .chart-section-card { display: flex; flex-direction: column; gap: 1rem; padding: 1.25rem; }
         .chart-header { display: flex; align-items: center; justify-content: space-between; }
         .chart-title-group { display: flex; align-items: center; gap: 0.5rem; }
@@ -205,3 +427,4 @@ export const StatsView = ({ state }) => {
     </div>
   );
 };
+

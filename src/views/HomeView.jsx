@@ -20,7 +20,7 @@ import { storage } from '../utils/storage';
 import { ProgressRing } from '../components/Charts/SvgCharts';
 import { EmptyState } from '../components/EmptyState';
 
-export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenSavingsModal, onOpenSleepModal }) => {
+export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenHabitModal, onEditHabit, onOpenSavingsModal, onOpenSleepModal }) => {
   const [sleepExpanded, setSleepExpanded] = useState(false);
   const [savingsHistoryExpanded, setSavingsHistoryExpanded] = useState(false);
 
@@ -52,7 +52,8 @@ export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenSavingsModa
 
   // Quick stats
   const pendingTasksCount = state.tasks.filter((t) => t.status === 'pending' || t.status === 'in_progress').length;
-  const activeHabitsCount = state.habits.length;
+  const activeHabits = (state.habits || []).filter((h) => h.status !== 'archived');
+  const activeHabitsCount = activeHabits.length;
   const totalFocusSeconds = (state.focusLogs || []).reduce((acc, f) => acc + (f.durationSeconds || 0), 0);
   const totalFocusMins = Math.round(totalFocusSeconds / 60);
 
@@ -219,22 +220,28 @@ export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenSavingsModa
             <Flame size={18} className="text-amber" />
             <h3 className="section-title">Habits</h3>
           </div>
-          <button className="text-action-btn" onClick={() => onNavigate('stats')}>
-            Habit Tracker
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button className="text-action-btn" onClick={onOpenHabitModal}>
+              + Add Habit
+            </button>
+            <span style={{ color: 'var(--text-subtle)', fontSize: '0.8rem' }}>|</span>
+            <button className="text-action-btn" onClick={() => onNavigate('stats')}>
+              Habit Tracker
+            </button>
+          </div>
         </div>
 
-        {state.habits.length === 0 ? (
+        {activeHabits.length === 0 ? (
           <EmptyState
             icon={Flame}
             title="No habits yet."
             subtitle="Track daily habits and build unstoppable streaks."
             actionLabel="Add Habit"
-            onAction={() => onNavigate('stats')}
+            onAction={onOpenHabitModal}
           />
         ) : (
           <div className="habits-quick-grid">
-            {state.habits.map((habit) => {
+            {activeHabits.map((habit) => {
               const isCompletedToday = habit.completions && habit.completions[todayStr];
               return (
                 <div
@@ -243,7 +250,7 @@ export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenSavingsModa
                   onClick={() => storage.toggleHabitCompletion(habit.id, todayStr)}
                 >
                   <div className="habit-quick-top">
-                    <Flame size={20} className={isCompletedToday ? 'text-amber' : 'text-muted'} />
+                    <Flame size={20} className={isCompletedToday ? 'text-amber' : 'text-muted'} style={habit.color ? { color: habit.color } : {}} />
                     <span className="streak-count">{habit.streak || 0}d streak</span>
                   </div>
                   <span className="habit-quick-title">{habit.title}</span>
