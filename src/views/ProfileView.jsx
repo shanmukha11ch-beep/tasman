@@ -78,7 +78,11 @@ export const ProfileView = ({ state, onOpenVoice }) => {
           <span className="avatar-initial font-heading">S</span>
         </div>
         <div className="user-card-info">
-          <h2 className="user-display-name">Shanmukha</h2>
+          <h2 className="user-display-name">{state.user?.name || 'Shanmukha'}</h2>
+          <button className="edit-name-btn" onClick={() => {
+            const newName = window.prompt('Enter new name', state.user?.name || '');
+            if (newName) storage.setUserName(newName);
+          }}>Edit Name</button>
           <span className="user-role-badge">TakMan Pro OS</span>
         </div>
       </div>

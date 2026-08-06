@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Header } from './components/Navigation/Header';
 import { BottomNav } from './components/Navigation/BottomNav';
 import { Splash } from './components/Navigation/Splash';
+import { Welcome } from './components/Onboarding/Welcome';
 import { VoiceModal } from './components/VoiceModal';
 
 import { HomeView } from './views/HomeView';
@@ -20,6 +21,7 @@ import { HabitModal } from './components/Modals/HabitModal';
 import { storage } from './utils/storage';
 
 export default function App() {
+  const [showWelcome, setShowWelcome] = useState(!storage.getUserName());
   const [state, setState] = useState(storage.getState());
   const [activeTab, setActiveTab] = useState('home');
   const [showSplash, setShowSplash] = useState(true);
@@ -76,14 +78,18 @@ export default function App() {
       {showSplash && <Splash onComplete={() => setShowSplash(false)} />}
 
       {/* Main Header */}
-      <Header
-        userName={state.user?.name || 'Shanmukha'}
-        onOpenVoice={() => setIsVoiceOpen(true)}
-        onQuickAddTask={handleOpenNewTask}
-      />
+      {showWelcome ? (
+        <Welcome onComplete={() => { setShowWelcome(false); }} />
+      ) : (
+        <>
+          <Header
+            userName={state.user?.name || 'Shanmukha'}
+            onOpenVoice={() => setIsVoiceOpen(true)}
+            onQuickAddTask={handleOpenNewTask}
+          />
 
-      {/* Primary View Routing */}
-      <main className="app-main-content">
+          {/* Primary View Routing */}
+          <main className="app-main-content">
         {activeTab === 'home' && (
           <HomeView
             state={state}
@@ -131,6 +137,8 @@ export default function App() {
           />
         )}
       </main>
+        </>
+      )}
 
       {/* Bottom Navigation */}
       <BottomNav

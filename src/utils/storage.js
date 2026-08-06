@@ -3,7 +3,7 @@ const STORAGE_KEY = 'TAKMAN_STORE_V1';
 
 const INITIAL_DATA = {
   user: {
-    name: 'Shanmukha',
+    name: '',
     tagline: 'Plan Better. Do More.'
   },
   tasks: [],
@@ -503,6 +503,16 @@ class StorageEngine {
     this.state = { ...INITIAL_DATA };
     this.save();
   }
+  // --- USER PERSONALIZATION ---
+  getUserName() {
+    return this.state.user?.name || '';
+  }
+
+  setUserName(name) {
+    this.state.user.name = name;
+    this.save();
+  }
 }
+
 
 export const storage = new StorageEngine();
