@@ -3,40 +3,40 @@
   --font-primary: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Color Palette - Midnight OLED Default */
-  --bg-app: #090a0f;
-  --bg-surface: #12151e;
-  --bg-surface-elevated: #1a1e2b;
-  --bg-card: rgba(26, 30, 43, 0.7);
-  --bg-card-hover: rgba(35, 41, 58, 0.85);
+  /* Color Palette - Deep Navy / Charcoal & Electric Purple Brand */
+  --bg-app: #0b0e17;
+  --bg-surface: #121624;
+  --bg-surface-elevated: #1a2032;
+  --bg-card: rgba(18, 22, 36, 0.8);
+  --bg-card-hover: rgba(26, 32, 50, 0.9);
 
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(99, 102, 241, 0.5);
+  --border-focus: rgba(139, 92, 246, 0.6);
 
-  /* Primary Gradient & Accent Tokens */
-  --accent-primary: #6366f1;
-  --accent-secondary: #8b5cf6;
-  --accent-tertiary: #ec4899;
+  /* Primary Brand Color Tokens */
+  --accent-primary: #8b5cf6; /* Electric Purple */
+  --accent-secondary: #6366f1; /* Indigo */
+  --accent-tertiary: #a855f7;
   --accent-cyan: #06b6d4;
   --accent-emerald: #10b981;
   --accent-amber: #f59e0b;
   --accent-rose: #f43f5e;
 
-  --grad-primary: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  --grad-primary: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
   --grad-surface: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%);
-  --grad-glow: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.15) 0%, rgba(0, 0, 0, 0) 70%);
+  --grad-glow: radial-gradient(circle at 50% 0%, rgba(139, 92, 246, 0.18) 0%, rgba(0, 0, 0, 0) 70%);
 
   /* Text Colors */
-  --text-main: #f8fafc;
+  --text-main: #ffffff;
   --text-muted: #94a3b8;
   --text-subtle: #64748b;
-  --text-inverse: #0f172a;
+  --text-inverse: #0b0e17;
 
   /* Elevation & Shadows */
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.6);
-  --shadow-glow: 0 0 20px rgba(99, 102, 241, 0.3);
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.65);
+  --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.35);
 
   /* Border Radii */
   --radius-sm: 8px;

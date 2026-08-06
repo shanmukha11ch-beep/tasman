@@ -16,23 +16,11 @@ export const Splash = ({ onComplete }) => {
       <div className="splash-logo-container">
         <div className="splash-icon">
           <svg viewBox="0 0 512 512" className="splash-svg">
-            <defs>
-              <linearGradient id="splashGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#6366f1" />
-                <stop offset="50%" stopColor="#8b5cf6" />
-                <stop offset="100%" stopColor="#d946ef" />
-              </linearGradient>
-              <filter id="splashGlow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="16" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
-            </defs>
-            <rect width="512" height="512" rx="128" fill="#0f172a" />
-            <g transform="translate(64, 64)">
-              <path d="M 40 50 Q 192 40 344 50 C 364 51 364 80 344 80 L 40 80 C 20 80 20 50 40 50 Z" fill="url(#splashGrad)" />
-              <path d="M 160 80 L 224 80 L 224 240 C 224 270 190 290 160 270 L 160 80 Z" fill="url(#splashGrad)" opacity="0.85" />
-              <path d="M 120 220 L 190 290 L 340 140" fill="none" stroke="url(#splashGrad)" strokeWidth="42" strokeLinecap="round" strokeLinejoin="round" filter="url(#splashGlow)" />
-            </g>
+            <rect width="512" height="512" rx="128" fill="#0b0e17"/>
+            <path d="M 88 104 C 88 92.9 96.9 84 108 84 L 404 84 C 415.1 84 424 92.9 424 104 L 424 160 C 424 171.1 415.1 180 404 180 L 108 180 C 96.9 180 88 171.1 88 160 Z" fill="#8b5cf6"/>
+            <path d="M 224 180 L 288 180 L 288 404 C 288 415.1 279.1 424 268 424 L 244 424 C 232.9 424 224 415.1 224 404 Z" fill="#8b5cf6"/>
+            <path d="M 120 180 L 176 180 L 224 316 L 168 316 L 120 212 Z" fill="#6366f1"/>
+            <path d="M 392 180 L 336 180 L 288 316 L 344 316 L 392 212 Z" fill="#6366f1"/>
           </svg>
         </div>
         <h1 className="splash-title text-gradient">TakMan</h1>
@@ -46,7 +34,7 @@ export const Splash = ({ onComplete }) => {
           left: 0;
           right: 0;
           bottom: 0;
-          background: #090a0f;
+          background: #0b0e17;
           z-index: 9999;
           display: flex;
           align-items: center;

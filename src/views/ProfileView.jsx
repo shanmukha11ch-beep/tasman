@@ -21,7 +21,7 @@ export const ProfileView = ({ state, onOpenVoice }) => {
   const currentTheme = state.settings?.theme || 'midnight-oled';
 
   const themes = [
-    { id: 'midnight-oled', name: 'Midnight OLED', color: '#6366f1' },
+    { id: 'midnight-oled', name: 'Deep Navy OLED', color: '#8b5cf6' },
     { id: 'deep-space', name: 'Deep Space', color: '#3b82f6' },
     { id: 'obsidian-emerald', name: 'Obsidian Emerald', color: '#10b981' },
     { id: 'cyber-neon', name: 'Cyber Neon', color: '#d946ef' }

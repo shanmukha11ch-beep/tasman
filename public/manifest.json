@@ -1,0 +1,29 @@
+{
+  "name": "TakMan",
+  "short_name": "TakMan",
+  "description": "Plan Better. Do More. - Productivity Operating System",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b0e17",
+  "theme_color": "#0b0e17",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/app-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/android-adaptive-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
