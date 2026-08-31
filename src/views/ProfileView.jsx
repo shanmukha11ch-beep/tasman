@@ -10,13 +10,16 @@ import {
   Check,
   Smartphone,
   ShieldCheck,
-  RotateCcw
+  RotateCcw,
+  AlertTriangle
 } from 'lucide-react';
 import { storage } from '../utils/storage';
+import { notifications, REMINDER_OPTIONS } from '../utils/notifications';
 
 export const ProfileView = ({ state, onOpenVoice }) => {
   const fileInputRef = useRef(null);
   const [importStatus, setImportStatus] = useState(null);
+  const [notificationMsg, setNotificationMsg] = useState('');
 
   const currentTheme = state.settings?.theme || 'midnight-oled';
 
@@ -32,13 +35,41 @@ export const ProfileView = ({ state, onOpenVoice }) => {
     document.body.setAttribute('data-theme', themeId);
   };
 
-  const handleToggleNotifications = () => {
-    const nextVal = !state.settings?.notifications;
-    storage.updateSettings({ notifications: nextVal });
-
-    if (nextVal && 'Notification' in window) {
-      Notification.requestPermission();
+  const handleToggleNotifications = async () => {
+    if (!notifications.isSupported()) {
+      setNotificationMsg('Your device/browser does not support notifications');
+      setTimeout(() => setNotificationMsg(''), 4000);
+      return;
     }
+
+    const currentPerm = notifications.getPermissionStatus();
+
+    if (currentPerm === 'denied') {
+      storage.updateSettings({ notifications: false });
+      setNotificationMsg('Notifications are disabled. Enable them from browser settings.');
+      setTimeout(() => setNotificationMsg(''), 4000);
+      return;
+    }
+
+    const nextVal = !state.settings?.notifications;
+    if (nextVal) {
+      if (currentPerm === 'default') {
+        const res = await notifications.requestPermission();
+        if (res === 'granted') {
+          setNotificationMsg('Notifications enabled successfully!');
+        } else if (res === 'denied') {
+          setNotificationMsg('Notifications are disabled. Enable them from browser settings.');
+        }
+      } else if (currentPerm === 'granted') {
+        storage.updateSettings({ notifications: true });
+        notifications.syncAllReminders(state.tasks, { ...state.settings, notifications: true });
+        setNotificationMsg('Notifications enabled!');
+      }
+    } else {
+      storage.updateSettings({ notifications: false });
+      setNotificationMsg('Notifications disabled');
+    }
+    setTimeout(() => setNotificationMsg(''), 4000);
   };
 
   const handleExport = () => {
@@ -69,6 +100,9 @@ export const ProfileView = ({ state, onOpenVoice }) => {
     { cmd: '"Start focus session"', desc: 'Open the Pomodoro timer module' },
     { cmd: '"What should I do today?"', desc: 'Summary of pending priorities' }
   ];
+
+  const permStatus = notifications.getPermissionStatus();
+  const isNotificationsEnabled = !!state.settings?.notifications && permStatus === 'granted';
 
   return (
     <div className="profile-view animate-fade-in">
@@ -118,16 +152,53 @@ export const ProfileView = ({ state, onOpenVoice }) => {
 
         <div className="setting-toggle-row">
           <div className="setting-label-box">
-            <span className="setting-name">Task & Focus Reminders</span>
+            <span className="setting-name">Enable Notifications</span>
             <span className="setting-subtext">Enable browser push notifications</span>
           </div>
           <button
-            className={`toggle-switch ${state.settings?.notifications ? 'on' : ''}`}
+            className={`toggle-switch ${isNotificationsEnabled ? 'on' : ''}`}
             onClick={handleToggleNotifications}
           >
             <div className="toggle-thumb" />
           </button>
         </div>
+
+        <div className="setting-toggle-row" style={{ marginTop: '0.5rem' }}>
+          <div className="setting-label-box">
+            <span className="setting-name">Default Reminder</span>
+            <span className="setting-subtext">Default setting for newly created tasks</span>
+          </div>
+          <select
+            className="form-select"
+            style={{ width: 'auto', minWidth: '150px' }}
+            value={state.settings?.defaultReminder || 'none'}
+            onChange={(e) => storage.updateSettings({ defaultReminder: e.target.value })}
+          >
+            {REMINDER_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        {!notifications.isSupported() && (
+          <div className="notification-status-notice text-rose">
+            <AlertTriangle size={14} style={{ display: 'inline', marginRight: '4px' }} />
+            Your device/browser does not support notifications
+          </div>
+        )}
+
+        {notifications.isSupported() && permStatus === 'denied' && (
+          <div className="notification-status-notice text-amber">
+            <AlertTriangle size={14} style={{ display: 'inline', marginRight: '4px' }} />
+            Notifications are disabled. Enable them from browser settings.
+          </div>
+        )}
+
+        {notificationMsg && (
+          <div className="status-toast">{notificationMsg}</div>
+        )}
       </div>
 
       {/* Backup & Restore */}
@@ -313,6 +384,7 @@ export const ProfileView = ({ state, onOpenVoice }) => {
         .section-desc-text { font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }
         .backup-actions-row { display: flex; gap: 0.75rem; }
         .status-toast { font-size: 0.8rem; color: var(--accent-emerald); font-weight: 600; }
+        .notification-status-notice { font-size: 0.775rem; padding: 0.5rem 0.75rem; background: rgba(255, 255, 255, 0.05); border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); display: flex; align-items: center; }
         .voice-guide-list { display: flex; flex-direction: column; gap: 0.6rem; }
         .voice-guide-item {
           display: flex;

@@ -1,51 +1,43 @@
 import React, { useState } from 'react';
 import { X, Moon, Clock } from 'lucide-react';
 import { storage } from '../../utils/storage';
+import { calculateSleepDuration, evaluateSleepQuality, getSleepQualityLabel } from '../../utils/sleepUtils';
 
 export const SleepModal = ({ isOpen, onClose }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [bedtime, setBedtime] = useState('23:00');
   const [wakeTime, setWakeTime] = useState('07:00');
-  const [quality, setQuality] = useState('Good'); // 'Great' | 'Good' | 'Fair' | 'Poor'
+  const [manualQuality, setManualQuality] = useState(null);
 
   if (!isOpen) return null;
 
-  // Calculate duration in hours
-  const calculateDuration = () => {
-    try {
-      const [bH, bM] = bedtime.split(':').map(Number);
-      const [wH, wM] = wakeTime.split(':').map(Number);
-
-      let bedDate = new Date();
-      bedDate.setHours(bH, bM, 0, 0);
-
-      let wakeDate = new Date();
-      wakeDate.setHours(wH, wM, 0, 0);
-
-      if (wakeDate <= bedDate) {
-        wakeDate.setDate(wakeDate.getDate() + 1);
-      }
-
-      const diffMs = wakeDate - bedDate;
-      const hours = diffMs / (1000 * 60 * 60);
-      return hours.toFixed(1);
-    } catch (e) {
-      return 8;
-    }
-  };
-
-  const durationHours = calculateDuration();
+  const durationHours = calculateSleepDuration(bedtime, wakeTime);
+  const autoQuality = evaluateSleepQuality(durationHours);
+  const quality = manualQuality || autoQuality;
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!date || !bedtime || !wakeTime) return;
+
     storage.addSleepRecord({
       date,
       bedtime,
       wakeTime,
-      durationHours: parseFloat(durationHours),
+      durationHours,
       quality
     });
+    setManualQuality(null);
     onClose();
+  };
+
+  const handleBedtimeChange = (val) => {
+    setBedtime(val);
+    setManualQuality(null); // Recalculate auto quality when time changes
+  };
+
+  const handleWakeTimeChange = (val) => {
+    setWakeTime(val);
+    setManualQuality(null); // Recalculate auto quality when time changes
   };
 
   return (
@@ -80,7 +72,7 @@ export const SleepModal = ({ isOpen, onClose }) => {
                 type="time"
                 className="form-input"
                 value={bedtime}
-                onChange={(e) => setBedtime(e.target.value)}
+                onChange={(e) => handleBedtimeChange(e.target.value)}
                 required
               />
             </div>
@@ -91,26 +83,28 @@ export const SleepModal = ({ isOpen, onClose }) => {
                 type="time"
                 className="form-input"
                 value={wakeTime}
-                onChange={(e) => setWakeTime(e.target.value)}
+                onChange={(e) => handleWakeTimeChange(e.target.value)}
                 required
               />
             </div>
           </div>
 
           <div className="form-group duration-box">
-            <span className="duration-lbl">Calculated Sleep Duration:</span>
-            <span className="duration-val font-heading">{durationHours} Hours</span>
+            <span className="duration-lbl">Calculated Duration:</span>
+            <span className="duration-val font-heading">
+              {durationHours} Hours — {getSleepQualityLabel(quality)}
+            </span>
           </div>
 
           <div className="form-group">
-            <label>Sleep Quality</label>
+            <label>Sleep Quality (Auto-Evaluated)</label>
             <div className="quality-chips-row">
-              {['Great', 'Good', 'Fair', 'Poor'].map((q) => (
+              {['Good', 'Average', 'Poor', 'Oversleep'].map((q) => (
                 <button
                   type="button"
                   key={q}
                   className={`quality-chip ${quality === q ? 'selected' : ''}`}
-                  onClick={() => setQuality(q)}
+                  onClick={() => setManualQuality(q)}
                 >
                   {q}
                 </button>
@@ -135,7 +129,7 @@ export const SleepModal = ({ isOpen, onClose }) => {
           justify-content: space-between;
         }
         .duration-lbl { font-size: 0.8rem; color: var(--text-muted); }
-        .duration-val { font-size: 1.15rem; font-weight: 800; color: var(--accent-primary); }
+        .duration-val { font-size: 0.95rem; font-weight: 800; color: var(--accent-primary); }
         .quality-chips-row { display: flex; gap: 0.5rem; }
         .quality-chip {
           flex: 1;

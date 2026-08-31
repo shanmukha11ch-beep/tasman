@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Plus, Trash2, Repeat, Clock, Calendar, Tag, FolderKanban } from 'lucide-react';
+import { X, Plus, Trash2, Repeat, Clock, Calendar, Tag, FolderKanban, Bell } from 'lucide-react';
 import { storage } from '../../utils/storage';
+import { REMINDER_OPTIONS, getReminderOffset } from '../../utils/notifications';
 
 export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }) => {
   const [title, setTitle] = useState('');
@@ -12,7 +13,7 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
   const [projectId, setProjectId] = useState('');
   const [tagsInput, setTagsInput] = useState('');
   const [notes, setNotes] = useState('');
-  const [reminder, setReminder] = useState(false);
+  const [reminderType, setReminderType] = useState('none');
 
   // Subtasks
   const [subtasks, setSubtasks] = useState([]);
@@ -34,7 +35,7 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
       setProjectId(initialTask.projectId || '');
       setTagsInput((initialTask.tags || []).join(', '));
       setNotes(initialTask.notes || '');
-      setReminder(initialTask.reminder || false);
+      setReminderType(initialTask.reminderType || (initialTask.reminder ? 'at_due' : 'none'));
       setSubtasks(initialTask.subtasks || []);
       if (initialTask.repeat) {
         setRepeatFreq(initialTask.repeat.frequency || 'never');
@@ -42,7 +43,8 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
         setCustomDays(initialTask.repeat.customDays || 1);
       }
     } else {
-      // Reset defaults
+      // Reset defaults using user setting if available
+      const defaultRem = storage.getState().settings?.defaultReminder || 'none';
       setTitle('');
       setDescription('');
       setCategory('Work');
@@ -52,7 +54,7 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
       setProjectId('');
       setTagsInput('');
       setNotes('');
-      setReminder(false);
+      setReminderType(defaultRem);
       setSubtasks([]);
       setRepeatFreq('never');
       setWeekdays([]);
@@ -91,6 +93,7 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
       ? tagsInput.split(',').map((t) => t.trim()).filter(Boolean)
       : [];
 
+    const reminderOffset = getReminderOffset(reminderType);
     const taskPayload = {
       title: title.trim(),
       description: description.trim(),
@@ -101,7 +104,9 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
       projectId: projectId || null,
       tags: parsedTags,
       notes: notes.trim(),
-      reminder,
+      reminder: reminderType !== 'none',
+      reminderType,
+      reminderOffset,
       subtasks,
       repeat: {
         frequency: repeatFreq,
@@ -233,6 +238,24 @@ export const TaskModal = ({ isOpen, onClose, initialTask = null, projects = [] }
               <option value="">No Project (Independent)</option>
               {projects.map((p) => (
                 <option key={p.id} value={p.id}>{p.title}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Reminder Field */}
+          <div className="form-group">
+            <label className="label-with-icon">
+              <Bell size={14} /> Reminder
+            </label>
+            <select
+              className="form-select"
+              value={reminderType}
+              onChange={(e) => setReminderType(e.target.value)}
+            >
+              {REMINDER_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
               ))}
             </select>
           </div>

@@ -17,6 +17,7 @@ import {
   Calendar as CalendarIcon
 } from 'lucide-react';
 import { storage } from '../utils/storage';
+import { getSleepQualityLabel } from '../utils/sleepUtils';
 import { ProgressRing } from '../components/Charts/SvgCharts';
 import { EmptyState } from '../components/EmptyState';
 
@@ -392,8 +393,8 @@ export const HomeView = ({ state, onNavigate, onOpenTaskModal, onOpenHabitModal,
               onClick={() => setSleepExpanded(!sleepExpanded)}
             >
               <div className="sleep-collapsed-info">
-                <span className="sleep-duration-val">{latestSleep.durationHours} hrs</span>
-                <span className="sleep-quality-badge">{latestSleep.quality} Sleep</span>
+                <span className="sleep-duration-val">{latestSleep.durationHours} hours</span>
+                <span className="sleep-quality-badge">{getSleepQualityLabel(latestSleep.quality)}</span>
               </div>
               <button className="btn-icon">
                 {sleepExpanded ? <ChevronUp size={18} /> : <ChevronDown size={18} />}

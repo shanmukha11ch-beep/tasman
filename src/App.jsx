@@ -19,6 +19,7 @@ import { SleepModal } from './components/Modals/SleepModal';
 import { HabitModal } from './components/Modals/HabitModal';
 
 import { storage } from './utils/storage';
+import { notifications } from './utils/notifications';
 
 export default function App() {
   const [showWelcome, setShowWelcome] = useState(!storage.getUserName());
@@ -36,12 +37,33 @@ export default function App() {
   const [isHabitModalOpen, setIsHabitModalOpen] = useState(false);
   const [editingHabit, setEditingHabit] = useState(null);
 
-  // Sync state with storage engine
+  // Sync state with storage engine and scheduler
   useEffect(() => {
+    const sync = (currState) => {
+      notifications.syncAllReminders(currState.tasks, currState.settings);
+    };
+
+    // Initial sync
+    sync(state);
+
     const unsubscribe = storage.subscribe((newState) => {
       setState({ ...newState });
+      sync(newState);
     });
-    return unsubscribe;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        const curr = storage.getState();
+        sync(curr);
+      }
+    };
+
+    window.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      unsubscribe();
+      window.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Apply theme to body

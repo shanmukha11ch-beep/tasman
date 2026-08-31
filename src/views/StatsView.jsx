@@ -22,6 +22,7 @@ import {
 import { BarChartComponent, TrendChartComponent, ProgressRing } from '../components/Charts/SvgCharts';
 import { EmptyState } from '../components/EmptyState';
 import { storage } from '../utils/storage';
+import { evaluateSleepQuality } from '../utils/sleepUtils';
 
 export const StatsView = ({ state, onOpenHabitModal, onEditHabit }) => {
   const [habitFilter, setHabitFilter] = useState('active'); // 'active' | 'paused' | 'archived' | 'all'
@@ -73,8 +74,11 @@ export const StatsView = ({ state, onOpenHabitModal, onEditHabit }) => {
   // Sleep metrics
   const sleepRecords = state.sleep?.records || [];
   const avgSleep = sleepRecords.length > 0
-    ? (sleepRecords.slice(0, 7).reduce((acc, s) => acc + s.durationHours, 0) / Math.min(7, sleepRecords.length)).toFixed(1)
+    ? (sleepRecords.reduce((acc, s) => acc + (s.durationHours || 0), 0) / sleepRecords.length).toFixed(1)
     : 0;
+
+  const goodSleepDays = sleepRecords.filter((s) => (s.quality || evaluateSleepQuality(s.durationHours)) === 'Good').length;
+  const poorSleepDays = sleepRecords.filter((s) => (s.quality || evaluateSleepQuality(s.durationHours)) === 'Poor').length;
 
   // Sleep trend data
   const sleepTrendData = sleepRecords.slice(0, 7).reverse().map((s) => ({
@@ -315,6 +319,22 @@ export const StatsView = ({ state, onOpenHabitModal, onEditHabit }) => {
             <div className="best-info">
               <span className="best-lbl">Total Focus Sessions</span>
               <span className="best-val">{focusLogs.length} Sessions</span>
+            </div>
+          </div>
+
+          <div className="best-item">
+            <CheckCircle2 size={18} className="text-emerald" />
+            <div className="best-info">
+              <span className="best-lbl">Good Sleep Days</span>
+              <span className="best-val">{goodSleepDays} Days</span>
+            </div>
+          </div>
+
+          <div className="best-item">
+            <Moon size={18} className="text-indigo" />
+            <div className="best-info">
+              <span className="best-lbl">Poor Sleep Days</span>
+              <span className="best-val">{poorSleepDays} Days</span>
             </div>
           </div>
         </div>

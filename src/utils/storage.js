@@ -1,3 +1,5 @@
+import { calculateSleepDuration, evaluateSleepQuality } from './sleepUtils';
+
 // TakMan Offline Data Store Engine
 const STORAGE_KEY = 'TAKMAN_STORE_V1';
 
@@ -24,7 +26,8 @@ const INITIAL_DATA = {
   settings: {
     theme: 'midnight-oled',
     notifications: false,
-    soundEnabled: true
+    soundEnabled: true,
+    defaultReminder: 'none'
   }
 };
 
@@ -79,6 +82,7 @@ class StorageEngine {
   // --- TASKS ---
   addTask(taskData) {
     const taskId = 'task_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7);
+    const reminderType = taskData.reminderType || (taskData.reminder ? 'at_due' : (this.state.settings?.defaultReminder || 'none'));
     const newTask = {
       id: taskId,
       title: taskData.title || 'Untitled Task',
@@ -91,7 +95,9 @@ class StorageEngine {
       tags: taskData.tags || [],
       notes: taskData.notes || '',
       subtasks: taskData.subtasks || [], // [{id, text, completed}]
-      reminder: taskData.reminder || false,
+      reminder: reminderType !== 'none',
+      reminderType: reminderType,
+      reminderOffset: taskData.reminderOffset !== undefined ? taskData.reminderOffset : 0,
       repeat: taskData.repeat || { frequency: 'never', weekdays: [], customDays: 1 },
       projectId: taskData.projectId || null,
       recurringSeriesId: taskData.recurringSeriesId || (taskData.repeat && taskData.repeat.frequency !== 'never' ? taskId : null),
@@ -108,7 +114,15 @@ class StorageEngine {
   updateTask(id, updates) {
     const idx = this.state.tasks.findIndex((t) => t.id === id);
     if (idx !== -1) {
-      this.state.tasks[idx] = { ...this.state.tasks[idx], ...updates };
+      const existing = this.state.tasks[idx];
+      const reminderType = updates.reminderType !== undefined ? updates.reminderType : (existing.reminderType || (existing.reminder ? 'at_due' : 'none'));
+      const updatedTask = {
+        ...existing,
+        ...updates,
+        reminder: reminderType !== 'none',
+        reminderType: reminderType
+      };
+      this.state.tasks[idx] = updatedTask;
       this.save();
     }
   }
@@ -449,13 +463,27 @@ class StorageEngine {
 
   // --- SLEEP TRACKER ---
   addSleepRecord(record) {
+    const bedtime = record.bedtime || '23:00';
+    const wakeTime = record.wakeTime || '07:00';
+    let durationHours;
+
+    if (record.bedtime && record.wakeTime) {
+      durationHours = calculateSleepDuration(bedtime, wakeTime);
+    } else if (record.durationHours !== undefined && record.durationHours !== null) {
+      durationHours = parseFloat(record.durationHours);
+    } else {
+      durationHours = calculateSleepDuration(bedtime, wakeTime);
+    }
+
+    const quality = record.quality || evaluateSleepQuality(durationHours);
+
     const newRecord = {
       id: 'sleep_' + Date.now(),
       date: record.date || new Date().toISOString().split('T')[0],
-      bedtime: record.bedtime || '23:00',
-      wakeTime: record.wakeTime || '07:00',
-      durationHours: parseFloat(record.durationHours) || 8,
-      quality: record.quality || 'Good' // Great, Good, Fair, Poor
+      bedtime,
+      wakeTime,
+      durationHours,
+      quality
     };
     this.state.sleep.records.unshift(newRecord);
     this.save();

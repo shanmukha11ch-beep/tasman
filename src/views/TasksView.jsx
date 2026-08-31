@@ -18,7 +18,8 @@ import {
   ListTodo,
   FolderKanban,
   Tag,
-  CheckSquare
+  CheckSquare,
+  Bell
 } from 'lucide-react';
 import { storage } from '../utils/storage';
 import { EmptyState } from '../components/EmptyState';
@@ -263,6 +264,11 @@ export const TasksView = ({ state, onOpenTaskModal, onEditTask, onOpenProjectMod
                       {task.dueTime && (
                         <span className="meta-item">
                           <Clock size={13} /> {task.dueTime}
+                        </span>
+                      )}
+                      {task.reminderType && task.reminderType !== 'none' && (
+                        <span className="meta-item text-amber" title={`Reminder: ${task.reminderType}`}>
+                          <Bell size={13} /> {task.reminderType === 'at_due' ? 'At due time' : `${task.reminderOffset || 0}m before`}
                         </span>
                       )}
                     </div>
